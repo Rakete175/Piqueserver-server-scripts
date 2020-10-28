@@ -114,7 +114,7 @@ def apply_script(protocol, connection, config):
             return connection.on_fall(self, damage)
         def on_animation_update(self, jump, crouch, sneak, sprint):
             
-            if (time.monotonic()-self.lastteleport) >= self.protocol.cooldown and sneak == True and not self.team.other.flag.player is self and self.world_object.cast_ray(self.protocol.length) is not None and self.world_object.cast_ray(self.protocol.length):
+            if (time.monotonic()-self.lastteleport) >= self.protocol.cooldown and sneak == True and not self.team.other.flag.player is self and self.world_object.cast_ray(self.protocol.length) is not None:
                 if self.world_object.velocity.z >= 0.58 and not self.god:
                     self.kill(self, FALL_KILL)
                 headpoints = world.cube_line(*(self.world_object.cast_ray(self.protocol.length)) + (self.world_object.position.get()))
