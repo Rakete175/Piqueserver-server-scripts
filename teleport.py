@@ -96,8 +96,7 @@ def apply_script(protocol, connection, config):
             if player is not None:
                 try:
                     if not player.world_object.dead and player.alive[teleporttime] != 0:
-                        if (position[0]>=0) * (position[0]<=511) * (position[1] >=0) * (position[1]<=511) * (position[2]>-5) * (position[2]<=63):
-                            player.set_location(position)
+                        (0, player.set_location(position))[(position[0]>=0) * (position[0]<=511) * (position[1] >=0) * (position[1]<=511) * (position[2]>-5) * (position[2]<=63)]
                     else:
                         player.alive[teleporttime]=0
                 except:
@@ -133,11 +132,13 @@ def apply_script(protocol, connection, config):
                         nice=True
                         set_pos(self, (x1,y1,z1-1), (self.world_object.position.get()))
                         break
-                    elif z1<=1 and self.world_object.position.z<4:
+                    elif (z1<=1) * (self.world_object.position.z<4):
                         nice=True
                         set_pos(self, (x1,y1,z1-2), (self.world_object.position.get()))
                         break
                 if nice == False: #emergency case
+                    x1, y1, z1 = self.world_object.cast_ray(self.protocol.length)
+                    x1, y1, z1 = int(x1), int(y1), int(z1)
                     for pos in self.protocol.pos_table:
                         if self.is_location_free(x1 + pos[0], y1 + pos[1], z1 + pos[2]):
                             set_pos(self, (x1 + pos[0],y1 + pos[1],z1 + pos[2]), (self.world_object.position.get()))
