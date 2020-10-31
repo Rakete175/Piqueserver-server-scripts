@@ -57,7 +57,7 @@ def tpc(self, value):
         self.send_chat("Oops! That didn't work. Try again!")
 
 def ff(player):
-    if player.alive!={}:
+    if player.alive=={}:
         player.unfallable = False
 
 def set_pos(player, goal, pos):
