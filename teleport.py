@@ -95,10 +95,8 @@ def apply_script(protocol, connection, config):
         def give_pos(player, position, teleporttime):
             if player is not None:
                 try:
-                    if not player.world_object.dead and player.alive[teleporttime] != 0:
-                        (0, player.set_location(position))[(position[0]>=0) * (position[0]<=511) * (position[1] >=0) * (position[1]<=511) * (position[2]>-5) * (position[2]<=63)]
-                    else:
-                        player.alive[teleporttime]=0
+                    if (position[0]>=0) * (position[0]<=511) * (position[1] >=0) * (position[1]<=511) * (position[2]>-5) * (position[2]<=63) * (player.alive[teleporttime] != 0):
+                        player.set_location(position)
                 except:
                     pass
                         
@@ -111,6 +109,12 @@ def apply_script(protocol, connection, config):
                 self.unfallable = False
                 return False
             return connection.on_fall(self, damage)
+        
+        def on_kill(self, killer, type, grenade):
+            for keys in self.alive.keys():
+                self.alive[keys]=0
+            return connection.on_kill(self, killer, type, grenade)
+        
         def on_animation_update(self, jump, crouch, sneak, sprint):
             
             if (time.monotonic()-self.lastteleport) >= self.protocol.cooldown and sneak == True and not self.team.other.flag.player is self and self.world_object.cast_ray(self.protocol.length) is not None:
