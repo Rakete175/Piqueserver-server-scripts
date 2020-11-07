@@ -64,9 +64,8 @@ def set_pos(player, goal, pos):
     blockdistance=round(sqrt((goal[0]-pos[0])**2 + (goal[1]-pos[1])**2 + (goal[2]-pos[2])**2))
     blockdistance += 1
     teleporttime=time.monotonic()
-    if player.world_object.orientation.z<0:
-        player.unfallable = True
-        reactor.callLater(player.protocol.speed*blockdistance+4, ff, player)
+    player.unfallable = True
+    reactor.callLater(player.protocol.speed*blockdistance+4, ff, player)
     player.alive[teleporttime]=1
     vectorx=(goal[0]-pos[0])/blockdistance
     vectory=(goal[1]-pos[1])/blockdistance
