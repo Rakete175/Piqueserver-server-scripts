@@ -71,8 +71,10 @@ def set_pos(player, goal, pos):
     vectory=(goal[1]-pos[1])/blockdistance
     vectorz=(goal[2]-pos[2])/blockdistance #noclipping during flight is intended
     for i in range(1,blockdistance):
-        reactor.callLater(player.protocol.speed*(i), player.give_pos, (pos[0]+vectorx*i, pos[1]+vectory*i,pos[2]+vectorz*i), teleporttime)
-    reactor.callLater(player.protocol.speed*(blockdistance+1), player.alive.pop, teleporttime)
+        zzz=reactor.callLater(player.protocol.speed*(i), player.give_pos, (pos[0]+vectorx*i, pos[1]+vectory*i,pos[2]+vectorz*i), teleporttime, i)
+        player.allhisplannedstuff[teleporttime*i]=zzz
+    zzz=reactor.callLater(player.protocol.speed*(blockdistance+1), player.alive.pop, teleporttime)
+    player.allhisplannedstuff[teleporttime*(blockdistance+1)]=zzz
     
     
 def apply_script(protocol, connection, config):
@@ -90,12 +92,14 @@ def apply_script(protocol, connection, config):
         unfallable = False
         lastteleport = 0.0
         alive = {}
+        allhisplannedstuff = {}
         
-        def give_pos(player, position, teleporttime):
+        def give_pos(player, position, teleporttime, iterator):
             if player is not None:
                 try:
                     if (position[0]>=0) * (position[0]<=511) * (position[1] >=0) * (position[1]<=511) * (position[2]>-5) * (position[2]<=63) * (player.alive[teleporttime] != 0):
                         player.set_location(position)
+                        player.allhisplannedstuff.pop(teleporttime*iterator)
                 except:
                     pass
                         
@@ -112,6 +116,9 @@ def apply_script(protocol, connection, config):
         def on_kill(self, killer, type, grenade):
             for keys in self.alive.keys():
                 self.alive[keys]=0
+            for keys2 in self.allhisplannedstuff.keys():
+                self.allhisplannedstuff[keys2].cancel()
+            self.allhisplannedstuff={}
             return connection.on_kill(self, killer, type, grenade)
         
         def on_animation_update(self, jump, crouch, sneak, sprint):
@@ -148,4 +155,9 @@ def apply_script(protocol, connection, config):
                             break
                 self.lastteleport=time.monotonic()
             return connection.on_animation_update(self, jump, crouch, sneak, sprint)
+        def on_disconnect(self):
+            for allkeys in self.allhisplannedstuff.keys():
+                self.allhisplannedstuff[allkeys].cancel()
+            self.allhisplannedstuff={}
+            connection.on_disconnect(self)
     return teleportprotocol, teleportconnection
