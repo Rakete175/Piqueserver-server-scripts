@@ -74,7 +74,7 @@ def set_pos(player, goal, pos):
         zzz=reactor.callLater(player.protocol.speed*(i), player.give_pos, (pos[0]+vectorx*i, pos[1]+vectory*i,pos[2]+vectorz*i), teleporttime, i)
         player.allhisplannedstuff[teleporttime*i]=zzz
     zzz=reactor.callLater(player.protocol.speed*(blockdistance+1), player.alive.pop, teleporttime)
-    player.allhisplannedstuff[teleporttime*(blockdistance+1)]=zzz
+    player.makeunfallable[teleporttime]=zzz
     
     
 def apply_script(protocol, connection, config):
@@ -93,6 +93,7 @@ def apply_script(protocol, connection, config):
         lastteleport = 0.0
         alive = {}
         allhisplannedstuff = {}
+        makeunfallable = {}
         
         def give_pos(player, position, teleporttime, iterator):
             if player is not None:
@@ -100,6 +101,7 @@ def apply_script(protocol, connection, config):
                     if (position[0]>=0) * (position[0]<=511) * (position[1] >=0) * (position[1]<=511) * (position[2]>-5) * (position[2]<=63) * (player.alive[teleporttime] != 0):
                         player.set_location(position)
                         player.allhisplannedstuff.pop(teleporttime*iterator)
+                        self.unfallable=True #idk why I even need that but it made fall kills during/after a teleport more unlikely somehow
                 except:
                     pass
                         
@@ -108,6 +110,10 @@ def apply_script(protocol, connection, config):
             return connection.on_spawn(self, pos)
             
         def on_fall(self, damage):
+            for unfallablekeys in self.makeunfallable.keys():
+                if self.makeunfallable[unfallablekeys].active():
+                    self.makeunfallable[unfallablekeys].cancel()
+            self.makeunfallable={}
             if self.unfallable:
                 self.unfallable = False
                 return False
@@ -117,13 +123,18 @@ def apply_script(protocol, connection, config):
             for keys in self.alive.keys():
                 self.alive[keys]=0
             for keys2 in self.allhisplannedstuff.keys():
-                self.allhisplannedstuff[keys2].cancel()
+                if self.allhisplannedstuff[keys2].active():
+                    self.allhisplannedstuff[keys2].cancel()
             self.allhisplannedstuff={}
             return connection.on_kill(self, killer, type, grenade)
         
         def on_animation_update(self, jump, crouch, sneak, sprint):
             
             if (time.monotonic()-self.lastteleport) >= self.protocol.cooldown and sneak == True and not self.team.other.flag.player is self and self.world_object.cast_ray(self.protocol.length) is not None:
+                for unfallablekeys in self.makeunfallable.keys():
+                    if self.makeunfallable[unfallablekeys].active():
+                        self.makeunfallable[unfallablekeys].cancel()
+                self.makeunfallable={}
                 if self.world_object.velocity.z >= 0.58 and not self.god:
                     self.kill(self, FALL_KILL)
                 headpoints = world.cube_line(*(self.world_object.cast_ray(self.protocol.length)) + (self.world_object.position.get()))
@@ -157,7 +168,12 @@ def apply_script(protocol, connection, config):
             return connection.on_animation_update(self, jump, crouch, sneak, sprint)
         def on_disconnect(self):
             for allkeys in self.allhisplannedstuff.keys():
-                self.allhisplannedstuff[allkeys].cancel()
+                if self.allhisplannedstuff[allkeys].active():
+                    self.allhisplannedstuff[allkeys].cancel()
             self.allhisplannedstuff={}
+            for unfallablekeys in self.makeunfallable.keys():
+                if self.makeunfallable[unfallablekeys].active():
+                    self.makeunfallable[allkeys].cancel()
+            self.makeunfallable={}
             connection.on_disconnect(self)
     return teleportprotocol, teleportconnection
