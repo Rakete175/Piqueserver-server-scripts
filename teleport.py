@@ -79,15 +79,33 @@ def set_pos(player, goal, pos):
     
 def apply_script(protocol, connection, config):
     class teleportprotocol(protocol):
-        cooldown = 0
+        cooldown = 8
         length = 120
         speed=0.004
+        previouscooldown = cooldown
+        previouslength = length
+        
+        def on_advance(self, *arg, **kw):
+            self.previouscooldown = self.cooldown
+            self.cooldown = 0 #this feature lets everyone teleport around in the end
+            self.previouslength = self.length
+            self.length = 300
         
         def on_map_change(self, map):
             for playerz in self.players.values():
                 playerz.alive.clear()
+                for allkeys in playerz.allhisplannedstuff.keys():
+                    if playerz.allhisplannedstuff[allkeys].active():
+                        playerz.allhisplannedstuff[allkeys].cancel()
+                playerz.allhisplannedstuff={}
+                for unfallablekeys in playerz.makeunfallable.keys():
+                    if playerz.makeunfallable[unfallablekeys].active():
+                        playerz.makeunfallable[unfallablekeys].cancel()
+                playerz.makeunfallable={}            
+            self.cooldown = self.previouscooldown
+            self.length = self.previouslength
             return protocol.on_map_change(self, map)
-
+        
     class teleportconnection(connection):
         unfallable = False
         lastteleport = 0.0
@@ -173,7 +191,7 @@ def apply_script(protocol, connection, config):
             self.allhisplannedstuff={}
             for unfallablekeys in self.makeunfallable.keys():
                 if self.makeunfallable[unfallablekeys].active():
-                    self.makeunfallable[allkeys].cancel()
+                    self.makeunfallable[unfallablekeys].cancel()
             self.makeunfallable={}
             connection.on_disconnect(self)
     return teleportprotocol, teleportconnection
