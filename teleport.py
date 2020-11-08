@@ -57,7 +57,7 @@ def tpc(self, value):
         self.send_chat("Oops! That didn't work. Try again!")
 
 def ff(player):
-    if player.alive=={}:
+    if player.allhisplannedstuff=={}:
         player.unfallable = False
 
 def set_pos(player, goal, pos):
@@ -65,16 +65,13 @@ def set_pos(player, goal, pos):
     blockdistance += 1
     teleporttime=time.monotonic()
     player.unfallable = True
-    reactor.callLater(player.protocol.speed*blockdistance+4, ff, player)
-    player.alive[teleporttime]=1
+    player.makeunfallable[teleporttime]=reactor.callLater(player.protocol.speed*blockdistance+4, ff, player)
     vectorx=(goal[0]-pos[0])/blockdistance
     vectory=(goal[1]-pos[1])/blockdistance
     vectorz=(goal[2]-pos[2])/blockdistance #noclipping during flight is intended
     for i in range(1,blockdistance):
         zzz=reactor.callLater(player.protocol.speed*(i), player.give_pos, (pos[0]+vectorx*i, pos[1]+vectory*i,pos[2]+vectorz*i), teleporttime, i)
         player.allhisplannedstuff[teleporttime*i]=zzz
-    zzz=reactor.callLater(player.protocol.speed*(blockdistance+1), player.alive.pop, teleporttime)
-    player.makeunfallable[teleporttime]=zzz
     
     
 def apply_script(protocol, connection, config):
@@ -93,7 +90,6 @@ def apply_script(protocol, connection, config):
         
         def on_map_change(self, map):
             for playerz in self.players.values():
-                playerz.alive.clear()
                 for allkeys in playerz.allhisplannedstuff.keys():
                     if playerz.allhisplannedstuff[allkeys].active():
                         playerz.allhisplannedstuff[allkeys].cancel()
@@ -109,17 +105,15 @@ def apply_script(protocol, connection, config):
     class teleportconnection(connection):
         unfallable = False
         lastteleport = 0.0
-        alive = {}
         allhisplannedstuff = {}
         makeunfallable = {}
         
         def give_pos(player, position, teleporttime, iterator):
             if player is not None:
                 try:
-                    if (position[0]>=0) * (position[0]<=511) * (position[1] >=0) * (position[1]<=511) * (position[2]>-5) * (position[2]<=63) * (player.alive[teleporttime] != 0):
+                    if (position[0]>=0) and (position[0]<=511) and (position[1] >=0) and (position[1]<=511) and (position[2]>-5) and (position[2]<=63):
                         player.set_location(position)
                         player.allhisplannedstuff.pop(teleporttime*iterator)
-                        self.unfallable=True #idk why I even need that but it made fall kills during/after a teleport more unlikely somehow
                 except:
                     pass
                         
@@ -133,13 +127,12 @@ def apply_script(protocol, connection, config):
                     self.makeunfallable[unfallablekeys].cancel()
             self.makeunfallable={}
             if self.unfallable:
-                self.unfallable = False
+                if self.allhisplannedstuff == {}:
+                    self.unfallable = False
                 return False
             return connection.on_fall(self, damage)
         
         def on_kill(self, killer, type, grenade):
-            for keys in self.alive.keys():
-                self.alive[keys]=0
             for keys2 in self.allhisplannedstuff.keys():
                 if self.allhisplannedstuff[keys2].active():
                     self.allhisplannedstuff[keys2].cancel()
