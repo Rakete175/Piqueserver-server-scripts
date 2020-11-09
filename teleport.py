@@ -113,7 +113,7 @@ def apply_script(protocol, connection, config):
                 try:
                     if (position[0]>=0) and (position[0]<=511) and (position[1] >=0) and (position[1]<=511) and (position[2]>-5) and (position[2]<=63):
                         player.set_location(position)
-                        player.allhisplannedstuff.pop(teleporttime*iterator)
+                    player.allhisplannedstuff.pop(teleporttime*iterator)
                 except:
                     pass
                         
@@ -122,13 +122,13 @@ def apply_script(protocol, connection, config):
             return connection.on_spawn(self, pos)
             
         def on_fall(self, damage):
-            for unfallablekeys in self.makeunfallable.keys():
-                if self.makeunfallable[unfallablekeys].active():
-                    self.makeunfallable[unfallablekeys].cancel()
-            self.makeunfallable={}
             if self.unfallable:
                 if self.allhisplannedstuff == {}:
                     self.unfallable = False
+                    for unfallablekeys in self.makeunfallable.keys():
+                        if self.makeunfallable[unfallablekeys].active():
+                            self.makeunfallable[unfallablekeys].cancel()
+                    self.makeunfallable={}
                 return False
             return connection.on_fall(self, damage)
         
@@ -141,7 +141,7 @@ def apply_script(protocol, connection, config):
         
         def on_animation_update(self, jump, crouch, sneak, sprint):
             
-            if (time.monotonic()-self.lastteleport) >= self.protocol.cooldown and sneak == True and not self.team.other.flag.player is self and self.world_object.cast_ray(self.protocol.length) is not None:
+            if (((time.monotonic()-self.lastteleport) >= self.protocol.cooldown) or self.invisible) and sneak == True and not self.team.other.flag.player is self and self.world_object.cast_ray(self.protocol.length) is not None:
                 for unfallablekeys in self.makeunfallable.keys():
                     if self.makeunfallable[unfallablekeys].active():
                         self.makeunfallable[unfallablekeys].cancel()
