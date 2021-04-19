@@ -1,5 +1,5 @@
 '''
-LICENSE: The Unlicense
+LICENSE: BSD-3
 '''
 
 from piqueserver.commands import command, get_player
